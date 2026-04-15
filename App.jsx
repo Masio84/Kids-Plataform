@@ -740,10 +740,14 @@ function GameNumeroMisterioso({ onBack, addProgress }) {
       const parsed = JSON.parse(text);
       setClues(parsed.clues);
     } catch {
+      const clue3 = num < 10 
+        ? `¡Piénsalo! Si me sumas 10, me convierto en el número ${num + 10} ✨` 
+        : `¡Piénsalo! Si me restas 10, me convierto en el número ${num - 10} ✨`;
+
       setClues([
         `Soy ${num % 2 === 0 ? "par" : "impar"} 🔢`,
         `Soy ${num > 10 ? "mayor que 10" : "menor o igual a 10"} 📏`,
-        `¡La suma de mis dígitos es ${String(num).split("").reduce((a,c) => a + parseInt(c), 0)}! ✨`
+        clue3
       ]);
     }
     setLoading(false);
