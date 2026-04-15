@@ -53,12 +53,12 @@ function Block({ n, color, size = 60, onClick, bounce = false, style = {} }) {
 function StarMeter({ streak }) {
   const stars = [];
   for (let i = 0; i < 10; i++) {
-    stars.push(i < streak ? "⭐" : "🌑");
+    stars.push(i < streak ? "🔥" : "🌑");
   }
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 12 }}>
       <div style={{ fontSize: 13, color: "#888", fontFamily: "'Nunito'", marginBottom: 4 }}>
-        ¡10 seguidas = 1 🌟 Estrella de Oro!
+        ¡10 fueguitos seguidos = 1 ⭐ Estrella de Oro!
       </div>
       <div style={{ display: "flex", gap: 4, background: "rgba(0,0,0,0.05)", padding: "8px 12px", borderRadius: 20 }}>
         {stars.map((s, i) => (
@@ -79,12 +79,12 @@ function GlobalScore({ stars, score }) {
   return (
     <div style={{ display: "flex", gap: 12, alignItems: "center", background: "rgba(255,255,255,0.8)", padding: "6px 12px", borderRadius: 20 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-        <span style={{ fontSize: 20 }}>🌟</span>
+        <span style={{ fontSize: 20 }}>⭐</span>
         <span style={{ fontFamily: "'Fredoka One'", fontSize: 20, color: COLORS.orange }}>{stars}</span>
       </div>
       <div style={{ width: 2, height: 20, background: "#ccc" }} />
       <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-        <span style={{ fontSize: 18 }}>🏆</span>
+        <span style={{ fontSize: 18 }}>⭐ Pts:</span>
         <span style={{ fontFamily: "'Fredoka One'", fontSize: 18, color: COLORS.blue }}>{score}</span>
       </div>
     </div>
@@ -243,7 +243,7 @@ export default function App() {
         {[
           { id: "daniel", name: "Daniel", emoji: "🧑", age: "9 años", color: COLORS.blue },
           { id: "alan", name: "Alan", emoji: "👦", age: "4 años", color: COLORS.green },
-        ].map(p => (
+        ].map((p, i) => (
           <div key={p.id} onClick={() => setPlayer(p.id)}
             style={{
               background: "white", borderRadius: 28, padding: "28px 40px",
@@ -255,7 +255,7 @@ export default function App() {
             onMouseEnter={e => e.currentTarget.style.transform = "scale(1.05)"}
             onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
           >
-            <div style={{ fontSize: 64, animation: "bounce 2s infinite" }}>{p.emoji}</div>
+            <div style={{ fontSize: 64, animation: `bounce ${1.5 + i*0.4}s infinite` }}>{p.emoji}</div>
             <div style={{ fontSize: 28, color: p.color, marginTop: 8 }}>{p.name}</div>
             <div style={{ fontSize: 16, color: "#999", fontFamily: "'Nunito'" }}>{p.age}</div>
           </div>
@@ -335,7 +335,7 @@ export default function App() {
                 alignItems: "center", justifyContent: "center",
                 fontSize: 36, flexShrink: 0,
                 border: `3px solid ${g.color}40`,
-                animation: "float 4s ease-in-out infinite"
+                animation: `float ${2.5 + ((i*3)%5)*0.3}s ease-in-out infinite`
               }}>{g.emoji}</div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 22, color: COLORS.dark }}>{g.title}</div>
@@ -411,14 +411,13 @@ function GlobalStyles() {
       }
       @keyframes slideTime {
         from { width: 100%; background: #2ECC40; }
-        50% { background: #FF8C00; }
-        to { width: 0%; background: #FF3B3B; }
+        100% { width: 0%; background: #2ECC40; }
       }
     `}</style>
   );
 }
 
-// ─── JUEGO 1: SUMA CON BLOQUES (DINÁMICO + CRONÓMETRO) ─────────────────────
+// ─── JUEGO 1: SUMA CON BLOQUES (DINÁMICO + CRONÓMETRO AMABLE) ────────────────
 function GameSumaBloques({ onBack, addProgress, stats }) {
   const level = stats.sumaLevel || 1;
   const maxVal = Math.min(level + 3, 10); // Empieza en 4, sube hasta 10 max
@@ -433,7 +432,6 @@ function GameSumaBloques({ onBack, addProgress, stats }) {
   
   // Cronómetro
   const [startTime, setStartTime] = useState(Date.now());
-  const [timeLeft, setTimeLeft] = useState(15000); // 15 segundos max visually
   const [timerKey, setTimerKey] = useState(0); // Para reiniciar animación
 
   function newRound() {
@@ -443,14 +441,24 @@ function GameSumaBloques({ onBack, addProgress, stats }) {
     setTimerKey(k => k + 1);
   }
 
+  // Ref auxiliar para acceder al state moderno en el evento de teclado
+  const inputRef = useRef(input);
+  inputRef.current = input;
+
   function check() {
+    // Si ya respondieron no hacer multiples checks
+    if (merged || starEarned) return;
+
+    const currentInput = inputRef.current;
+    if (!currentInput) return;
+
     const elapsed = Date.now() - startTime;
     
-    if (parseInt(input) === a + b) {
-      // Calcular puntaje por velocidad (rápido = más puntos para subir de nivel)
+    if (parseInt(currentInput) === a + b) {
+      // Calcular puntaje por velocidad (Tiempos más relajados)
       let pts = 1;
-      if (elapsed < 3500) pts = 3;      // Súper rápido
-      else if (elapsed < 7000) pts = 2; // Buen tiempo
+      if (elapsed < 6000) pts = 3;      
+      else if (elapsed < 12000) pts = 2; 
       
       const newStreak = streak + 1;
       let stars = 0;
@@ -465,15 +473,42 @@ function GameSumaBloques({ onBack, addProgress, stats }) {
       setFeedback({ text: `¡Perfecto! 🎉 (+${pts} pts)`, ok: true });
       setMerged(true);
       
-      // Points for global score, stars, points for level progress
       addProgress("suma", 1, stars, pts); 
       
-      setTimeout(newRound, stars ? 3000 : 1800); // Dar más tiempo para celebrar estrella
+      setTimeout(newRound, stars ? 3000 : 1800);
     } else {
       setFeedback({ text: "Intenta de nuevo 💪", ok: false });
       setStreak(0); // Rompe racha
-      setTimeout(() => setFeedback(null), 1200);
+      setTimeout(() => { setInput(""); setFeedback(null); }, 1200);
     }
+  }
+
+  // Teclado Event Listener
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if (merged || starEarned) return;
+      
+      if (e.key >= "0" && e.key <= "9") {
+        setInput(prev => {
+           const next = prev + e.key;
+           return next.length > 2 ? e.key : next; 
+        });
+      } else if (e.key === "Backspace") {
+        setInput(prev => prev.slice(0, -1));
+      } else if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        check();
+      }
+    }
+    
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [merged, starEarned, a, b]); // Removed input from dependency to avoid re-binding constantly
+
+  // Wrapper for screen buttons
+  function handleButtonClick(val) {
+    if (merged || starEarned) return;
+    setInput(val);
   }
 
   const colorA = BLOCK_COLORS[(a - 1) % BLOCK_COLORS.length];
@@ -485,7 +520,7 @@ function GameSumaBloques({ onBack, addProgress, stats }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
         <Btn onClick={onBack} color={COLORS.orange} style={{ fontSize: 15, padding: "8px 18px" }}>← Volver</Btn>
         <h2 style={{ fontFamily: "'Fredoka One'", color: COLORS.blue, margin: 0 }}>Sumas (Niv {level})</h2>
-        <span style={{ fontFamily: "'Fredoka One'", color: COLORS.green, fontSize: 18 }}>🔥x{streak}</span>
+        <span style={{ fontFamily: "'Fredoka One'", color: COLORS.orange, fontSize: 18 }}>🔥x{streak}</span>
       </div>
 
       <StarMeter streak={streak} />
@@ -493,21 +528,21 @@ function GameSumaBloques({ onBack, addProgress, stats }) {
       <Card style={{ textAlign: "center", position: "relative", overflow: "hidden" }}>
         {starEarned && (
           <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(255,255,255,0.9)", zIndex: 10, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", animation: "pop 0.5s ease" }}>
-            <div style={{ fontSize: 80, animation: "spin 2s linear infinite" }}>🌟</div>
+            <div style={{ fontSize: 80, animation: "spin 2s linear infinite" }}>⭐</div>
             <h2 style={{ fontFamily: "'Fredoka One'", color: COLORS.orange, margin: "16px 0" }}>¡GANASTE UNA ESTRELLA!</h2>
             <p style={{ fontFamily: "'Nunito'", fontSize: 20 }}>¡10 respuestas correctas seguidas!</p>
           </div>
         )}
 
-        {/* TIMER BAR */}
+        {/* TIMER BAR: Relajado 30 segundos, color verde que se consume suavemente */}
         {!merged && !starEarned && (
            <div style={{ width: "100%", height: 8, background: "#eee", borderRadius: 4, marginBottom: 20, overflow: "hidden" }}>
-             <div key={timerKey} style={{ height: "100%", animation: `slideTime 15s linear forwards` }} />
+             <div key={timerKey} style={{ height: "100%", animation: `slideTime 30s linear forwards` }} />
            </div>
         )}
 
         <p style={{ fontFamily: "'Fredoka One'", fontSize: 20, color: "#555", marginBottom: 24 }}>
-          ¿Cuánto suman los dos bloques?
+          Usa tu teclado numérico o los botones
         </p>
 
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 20, marginBottom: 28, flexWrap: "wrap" }}>
@@ -529,7 +564,7 @@ function GameSumaBloques({ onBack, addProgress, stats }) {
           <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap", maxWidth: 400, margin: "0 auto" }}>
             {[...Array(maxVal * 2)].map((_, i) => (
               <Btn key={i + 1} color={BLOCK_COLORS[i % BLOCK_COLORS.length]}
-                onClick={() => { setInput(String(i + 1)); setTimeout(() => { setInput(String(i + 1)); }, 10); }}
+                onClick={() => handleButtonClick(String(i + 1))}
                 style={{ fontSize: 22, padding: "10px 14px", minWidth: 48, flexGrow: 1 }}>
                 {i + 1}
               </Btn>
@@ -539,7 +574,9 @@ function GameSumaBloques({ onBack, addProgress, stats }) {
         {!merged && input && (
           <div style={{ marginTop: 16, animation: "pop 0.3s ease" }}>
             <p style={{ fontFamily: "'Fredoka One'", fontSize: 22 }}>Respuesta: <b style={{ color: COLORS.blue }}>{input}</b></p>
-            <Btn onClick={check} color={COLORS.green} style={{ width: "100%", padding: "16px", fontSize: 24 }}>¡Aceptar! ✅</Btn>
+            <Btn onClick={check} color={COLORS.green} style={{ width: "100%", padding: "16px", fontSize: 24 }}>
+              ¡Aceptar! ✅ <span style={{fontSize: 14, display:"block", marginTop: 4}}>(O presiona Enter / Espacio)</span>
+            </Btn>
           </div>
         )}
       </Card>
@@ -610,7 +647,7 @@ function GameSilabas({ onBack, addProgress }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <Btn onClick={onBack} color={COLORS.orange} style={{ fontSize: 15, padding: "8px 18px" }}>← Volver</Btn>
         <h2 style={{ fontFamily: "'Fredoka One'", color: COLORS.yellow, margin: 0, textShadow: "0 2px 4px rgba(0,0,0,0.2)" }}>Sílabas 🔠</h2>
-        <span style={{ fontFamily: "'Fredoka One'", color: COLORS.green, fontSize: 18 }}>🔥x{streak}</span>
+        <span style={{ fontFamily: "'Fredoka One'", color: COLORS.orange, fontSize: 18 }}>🔥x{streak}</span>
       </div>
 
       <StarMeter streak={streak} />
@@ -618,7 +655,7 @@ function GameSilabas({ onBack, addProgress }) {
       <Card style={{ textAlign: "center", position: "relative", overflow: "hidden" }}>
         {starEarned && (
           <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(255,255,255,0.9)", zIndex: 10, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", animation: "pop 0.5s ease" }}>
-            <div style={{ fontSize: 80, animation: "spin 2s linear infinite" }}>🌟</div>
+            <div style={{ fontSize: 80, animation: "spin 2s linear infinite" }}>⭐</div>
             <h2 style={{ fontFamily: "'Fredoka One'", color: COLORS.orange, margin: "16px 0" }}>¡ESTRELLA PARA ALAN!</h2>
             <p style={{ fontFamily: "'Nunito'", fontSize: 20 }}>¡Eres muy inteligente!</p>
           </div>
@@ -647,7 +684,7 @@ function GameSilabas({ onBack, addProgress }) {
               cursor: "pointer",
               boxShadow: "0 8px 0 rgba(0,0,0,0.2)",
               transition: "transform 0.1s",
-              animation: "pop 0.4s ease",
+              animation: `pop 0.4s ease ${i*0.1}s`,
             }}
             onMouseDown={e => e.currentTarget.style.transform = "translateY(8px)"}
             onMouseUp={e => e.currentTarget.style.transform = "translateY(0)"}
@@ -694,7 +731,7 @@ function GameNumeroMisterioso({ onBack, addProgress }) {
           system: "Eres un asistente para un juego de niños. Responde SOLO con JSON válido, sin texto extra, sin markdown.",
           messages: [{
             role: "user",
-            content: `Genera 3 pistas divertidas y sencillas para que un niño de 9 años adivine el número ${num} (entre 1 y 20). Usa emojis. Responde solo con JSON: {"clues": ["pista1", "pista2", "pista3"]}`
+            content: `Genera 3 pistas divertidas y sencillas para que un niño de 9 años adivine el número ${num} (entre 1 y 20). No reveles el número jamás. Usa emojis. Responde solo con JSON: {"clues": ["pista1", "pista2", "pista3"]}`
           }]
         })
       });
@@ -706,7 +743,7 @@ function GameNumeroMisterioso({ onBack, addProgress }) {
       setClues([
         `Soy ${num % 2 === 0 ? "par" : "impar"} 🔢`,
         `Soy ${num > 10 ? "mayor que 10" : "menor o igual a 10"} 📏`,
-        `Fácil, soy el ${num} ✨`
+        `¡La suma de mis dígitos es ${String(num).split("").reduce((a,c) => a + parseInt(c), 0)}! ✨`
       ]);
     }
     setLoading(false);
@@ -859,7 +896,7 @@ function GameCazadorPalabras({ onBack, addProgress }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <Btn onClick={onBack} color={COLORS.orange} style={{ fontSize: 15, padding: "8px 18px" }}>← Volver</Btn>
         <h2 style={{ fontFamily: "'Fredoka One'", color: COLORS.green, margin: 0 }}>Cazador 🔤</h2>
-        <span style={{ fontFamily: "'Fredoka One'", color: COLORS.green, fontSize: 18 }}>🔥x{streak}</span>
+        <span style={{ fontFamily: "'Fredoka One'", color: COLORS.orange, fontSize: 18 }}>🔥x{streak}</span>
       </div>
       <StarMeter streak={streak} />
 
@@ -1056,7 +1093,7 @@ function GameTriviaCiencias({ onBack, addProgress }) {
         <span />
       </div>
       <Card style={{ textAlign: "center", animation: "celebrate 1s ease" }}>
-        <div style={{ fontSize: 80, marginBottom: 16 }}>🏆</div>
+        <div style={{ fontSize: 80, marginBottom: 16 }}>⭐</div>
         <p style={{ fontFamily: "'Fredoka One'", fontSize: 26, color: COLORS.blue }}>¡Terminaste!</p>
         <p style={{ fontFamily: "'Fredoka One'", fontSize: 22, color: COLORS.green }}>
           {correct} de {QUESTIONS.length} correctas
@@ -1073,7 +1110,7 @@ function GameTriviaCiencias({ onBack, addProgress }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <Btn onClick={onBack} color={COLORS.orange} style={{ fontSize: 15, padding: "8px 18px" }}>← Volver</Btn>
         <h2 style={{ fontFamily: "'Fredoka One'", color: COLORS.teal, margin: 0 }}>Ciencias 🔬</h2>
-        <span style={{ fontFamily: "'Fredoka One'", color: COLORS.teal, fontSize: 16 }}>🔥x{streak} ({idx + 1}/{QUESTIONS.length})</span>
+        <span style={{ fontFamily: "'Fredoka One'", color: COLORS.orange, fontSize: 16 }}>🔥x{streak} ({idx + 1}/{QUESTIONS.length})</span>
       </div>
 
       <Card style={{ textAlign: "center" }}>
